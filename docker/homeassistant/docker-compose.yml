@@ -1,0 +1,28 @@
+name: homeassistant
+services:
+  homeassistant:
+    image: linuxserver/homeassistant:latest
+    container_name: homeassistant
+    environment:
+      - PGID=1000
+      - PUID=1000
+      - TZ=America/Mexico_City
+    restart: unless-stopped
+    volumes:
+      - /etc/localtime:/etc/localtime
+      - /DATA/AppData/homeassistant:/config
+    network_mode: "host" # integrations works better if on host's network mode
+    # Moved to a static router in  traefikhost.docker.internal
+    # labels:
+    #   - "traefik.enable=true"
+    #   - "traefik.http.routers.ha.entrypoints=http"
+    #   - "traefik.http.routers.ha.rule=Host(`ha-hg.devsos.dev`)"
+    #   - "traefik.http.middlewares.ha-https-redirect.redirectscheme.scheme=https"
+    #   - "traefik.http.routers.ha.middlewares=ha-https-redirect"
+    #   - "traefik.http.routers.ha-secure.entrypoints=https"
+    #   - "traefik.http.routers.ha-secure.rule=Host(`ha-hg.devsos.dev`)"
+    #   - "traefik.http.routers.ha-secure.tls=true"
+    #   - "traefik.http.routers.ha-secure.service=ha"
+    #   - "traefik.http.services.ha.loadbalancer.server.port=8123"
+    #   - "traefik.docker.network=host"
+

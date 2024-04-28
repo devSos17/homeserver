@@ -1,0 +1,63 @@
+---
+- hosts: homeserver
+  become: true
+
+  tasks:
+    - name: install docker
+      include_role: 
+        name: docker
+      vars:
+        docker_images:
+          - traefik:latest
+          - mariadb:latest
+          - portainer/portainer-ce:latest
+          - cloudflare/cloudflared:latest
+          - adguard/adguardhome:latest
+          - linuxserver/homeassistant:latest
+
+    # Add volume
+    - name: Mount up DATA drive
+      mount:
+        path: /DATA
+        src: /dev/sda1
+        fstype: ext4
+        state: mounted
+
+    - name: Docker Run 
+      block: 
+      - name: Copy confs
+        copy:
+          src: ../../docker
+          dest: /DATA
+      - name: Copy Data
+        copy:
+          src: ../../data
+          dest: /DATA/AppData
+
+      - name: config networks
+        docker_network:
+          name: "{{ item.name }}"
+          ipam_config:
+            - subnet: "{{ item.subnet }}"
+        with_items: 
+          - name: "public"
+            subnet: "172.24.10.0/24"
+          - name: "backend"
+            subnet: "172.24.20.0/24"
+          - name: "db"
+            subnet: "172.24.30.0/24"
+          - name: "dns"
+            subnet: "172.24.40.0/24"
+
+      - name: Run images
+        community.docker.docker_compose_v2:
+          project_src: "/DATA/docker/{{ item }}"
+        with_items:
+          - "traefik"
+          - "portainer"
+          - "db"
+          - "nextcloud"
+          - "homeassistant"
+          - "adguard"
+          - "nginx"
+

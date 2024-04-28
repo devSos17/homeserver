@@ -1,0 +1,66 @@
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: false # true by default
+
+api:
+ dashboard: true  # true by default
+ debug: true  # true by default
+
+# Entry Points configuration
+# ---
+entryPoints:
+  http:
+    address: :80
+    # (Optional) Redirect to HTTPS
+    # ---
+    # http:
+    #   redirections:
+    #     entryPoint:
+    #       to: https
+    #       scheme: https
+
+  https:
+    address: :443
+    forwardedHeaders:
+      trustedIPs:
+        - "127.0.0.1/32"
+        - "192.168.1.0/24"
+        - "192.168.100.0/24" #for testing
+        - "172.0.0.0/8" #docker networks
+
+serversTransport:
+  insecureSkipVerify: true
+
+# Configure your CertificateResolver here...
+# ---
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: devsos117@gmail.com
+      storage: /data/acme.json
+      caServer: "https://acme-v02.api.letsencrypt.org/directory"
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - "1.1.1.1:53"
+          - "1.0.0.1:53"
+
+# (Optional) Overwrite Default Certificates
+# tls:
+#   stores:
+#     default:
+#       defaultCertificate:
+#         certFile: /etc/traefik/certs/cert.pem
+#         keyFile: /etc/traefik/certs/cert-key.pem
+# (Optional) Disable TLS version 1.0 and 1.1
+#   options:
+#     default:
+#       minVersion: VersionTLS12
+
+providers:
+  docker:
+    exposedByDefault: false # Default is true
+  file:
+    # watch for dynamic configuration changes
+    directory: /conf
+    watch: true

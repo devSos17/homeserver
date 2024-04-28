@@ -1,0 +1,47 @@
+services:
+  traefik:
+    image: "traefik:2.11"
+    container_name: "traefik"
+    ports:
+      - "80:80"
+      - "443:443"
+      # - "8080:8080" #Dashboard
+    extra_hosts:
+      - "homeassistant:host-gateway"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro #time
+      - /var/run/docker.sock:/var/run/docker.sock:ro #listen docker
+      - ./traefik.yml:/etc/traefik/traefik.yml # config traefik
+      - ./conf:/conf # extra configs / Routes and stuff 
+      - /DATA/AppData/traefik:/data # store data
+    environment:
+      - "CF_DNS_API_TOKEN_FILE=/data/cf_dns_token"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.entrypoints=http"
+      - "traefik.http.routers.traefik.rule=Host(`traefik-hg.devsos.dev`)"
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=sos:$$apr1$$Y57dmkzh$$TyogzyvjP98a7e1MybuKF1"
+      - "traefik.http.middlewares.traefik-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.routers.traefik.middlewares=traefik-https-redirect"
+      - "traefik.http.routers.traefik-secure.entrypoints=https"
+      - "traefik.http.routers.traefik-secure.rule=Host(`traefik-hg.devsos.dev`)"
+      - "traefik.http.routers.traefik-secure.middlewares=traefik-auth"
+      - "traefik.http.routers.traefik-secure.tls=true"
+      - "traefik.http.routers.traefik-secure.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik-secure.tls.domains[0].main=devsos.dev"
+      - "traefik.http.routers.traefik-secure.tls.domains[0].sans=*.devsos.dev"
+      - "traefik.http.routers.traefik-secure.service=api@internal"
+
+    networks:
+      - public
+      - backend
+      - dns
+
+networks:
+    public:
+      external: true
+    backend:
+      external: true
+    dns:
+      external: true

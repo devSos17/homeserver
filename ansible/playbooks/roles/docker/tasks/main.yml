@@ -1,0 +1,89 @@
+---
+- name: Apt update and Install dependencies
+  become: True
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+      - gnupg
+      - lsb-release
+    state: present
+    update-cache: yes
+
+- name: Add Docker Key
+  become: True
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+
+- name: Add Docker Repo
+  become: True
+  apt_repository:
+    repo:  deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
+    state: present
+    filename: docker
+
+- name: Install Docker
+  become: True
+  apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+    state: latest
+
+- name: Start and enable docker
+  become: True
+  service:
+    name: docker
+    enabled: yes
+    state: started
+
+- name: Add remote user to docker group
+  become: True
+  user:
+    name: '{{ ansible_user_id }}'
+    append: yes
+    groups: docker
+
+- name: Install pip
+  become: True
+  apt:
+    name:
+      - python3-pip
+      - virtualenv
+      - python3-docker
+    state: present
+    update-cache: yes
+
+# - name: Login to registry
+  # block:
+  # - name: Login to private Registry
+  #   docker_login:
+  #     state: present
+  #     registry: '{{ DOCKER_REGISTRY }}'
+  #     usernme: '{{ DOCKER_REGISTRY_USERNAME }}'
+  #     password: '{{ DOCKER_REGISTRY_PSK }}'
+  #   # when: '{{ DOCKER_REGISTRY }}'
+  # - name: Login to Docker.io Registry
+  #   docker_login:
+  #     state: present
+  #     usernme: '{{ DOCKER_REGISTRY_USERNAME }}'
+  #     password: '{{ DOCKER_REGISTRY_PSK }}'
+  #   when: ! '{{ DOCKER_REGISTRY }}'
+  # when: '{{ DOCKER_REGISTRY_USERNAME }}'
+# - name: Login to Docker.io Registry
+#   docker_login:
+#     state: present
+#     username: '{{ DOCKER_REGISTRY_USERNAME }}'
+#     password: '{{ DOCKER_REGISTRY_PSK }}'
+
+- name: Pull Docker images
+  docker_image:
+    name: '{{ item }}'
+    source: pull
+  with_items:
+    - '{{ docker_images }}'
+
