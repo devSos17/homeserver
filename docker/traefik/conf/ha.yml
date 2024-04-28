@@ -1,0 +1,27 @@
+---
+
+http:
+  routers:
+    ha:
+      rule: "Host(`ha-hg.devsos.dev`)"
+      service: "ha"
+      middlewares:
+        - "ha-https-redirect"
+    ha-secure:
+      rule: "Host(`ha-hg.devsos.dev`)"
+      service: "ha"
+      tls: true
+      entryPoints:
+        - "https"
+
+  middlewares:
+    ha-https-redirect:
+      redirectScheme:
+        scheme: "https"
+
+  services:
+    ha:
+      loadBalancer:
+        servers:
+          - url: "http://homeassistant:8123"
+

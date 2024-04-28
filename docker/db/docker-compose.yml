@@ -1,0 +1,21 @@
+services:
+  mariadb:
+    image: mariadb:lts
+    container_name: db
+    environment:
+      - MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=yes
+      - MARIADB_DATABASE=nextcloud
+      - MARIADB_PASSWORD_HASH=*F9AFCF3B8F4E043F0884BF2B02596FBB01396837
+      - MARIADB_ROOT_HOST=localhost
+      - MARIADB_USER=nextcloud
+    restart: always
+    volumes:
+      - /etc/localtime:/etc/localtime
+      - /DATA/AppData/db:/var/lib/mysql
+    # ports: 
+    #   - 3306:3306
+
+networks:
+  default:
+    name: db
+    external: true

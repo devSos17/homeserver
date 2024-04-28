@@ -1,0 +1,25 @@
+services:
+  nginx:
+    container_name: "web-prueba"
+    image: nginx:alpine
+    volumes:
+      - ./html:/usr/share/nginx/html
+    # ports:
+    #   - "8001:80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.site.entrypoints=http"
+      - "traefik.http.routers.site.rule=Host(`hg.devsos.dev`)"
+      - "traefik.http.middlewares.site-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.site.middlewares=site-https-redirect"
+      - "traefik.http.routers.site-secure.entrypoints=https"
+      - "traefik.http.routers.site-secure.rule=Host(`hg.devsos.dev`)"
+      - "traefik.http.routers.site-secure.tls=true"
+      - "traefik.http.routers.site-secure.service=site"
+      - "traefik.http.services.site.loadbalancer.server.port=80"
+      - "traefik.docker.network=backend"
+
+networks:
+  default:
+    name: backend
+    external: true

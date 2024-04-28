@@ -1,0 +1,34 @@
+name: adguard-home
+services:
+  adguard-home:
+    image: adguard/adguardhome:latest
+    container_name: adguard-home
+    deploy:
+    ports:
+      - "53:53/tcp" # clasic dns
+      - "53:53/udp" # clasic dns
+      - "853:853/tcp" # Quic/TLS dns
+      - "784:784/udp" 
+      - "3000:3000" # Dashboard port
+    restart: always
+    volumes:
+      - /etc/localtime:/etc/localtime
+      - /DATA/AppData/adguard-home/work:/opt/adguardhome/work
+      - /DATA/AppData/adguard-home/conf:/opt/adguardhome/conf
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.adguard.entrypoints=http"
+      - "traefik.http.routers.adguard.rule=Host(`dns-hg.devsos.dev`)"
+      - "traefik.http.middlewares.adguard-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.adguard.middlewares=adguard-https-redirect"
+      - "traefik.http.routers.adguard-secure.entrypoints=https"
+      - "traefik.http.routers.adguard-secure.rule=Host(`dns-hg.devsos.dev`)"
+      - "traefik.http.routers.adguard-secure.tls=true"
+      - "traefik.http.routers.adguard-secure.service=adguard"
+      - "traefik.http.services.adguard.loadbalancer.server.port=3000"
+      - "traefik.docker.network=adguard"
+
+networks:
+  default:
+    name: dns
+    external: true
