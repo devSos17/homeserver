@@ -1,0 +1,6 @@
+[homeserver]
+<ip/dns>
+
+[homeserver:vars]
+ansible_user=sos
+
