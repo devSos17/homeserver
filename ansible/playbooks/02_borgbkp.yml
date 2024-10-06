@@ -1,0 +1,94 @@
+---
+- hosts: homeserver
+  become: true
+  vars:
+    user: backup
+    group: backup
+    home: /opt/backup
+    pool: "/DATA/bkps"
+    auth_users:
+      - host: sos
+        key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+
+  tasks:
+    # make sure ther is a DATA folder
+    - name: Check for DATA
+      block:
+        - name: Check if /DATA is mounted
+          command: mount | grep '/DATA'
+          register: mount_check
+          ignore_errors: yes
+
+        - name: Create /DATA directory if it doesn't exist
+          file:
+            path: /DATA
+            state: directory
+
+        - name: Mount /DATA volume
+          mount:
+            path: /DATA
+            src: /dev/sd1  # Replace with your device or NFS share
+            fstype: ext4   # Replace with your filesystem type
+            state: present
+          when: mount_check.rc != 0  # Only mount if it's not already mounted
+
+
+    # Add BORG
+    - name: Ensure Borg is installed
+      package:
+        name: borgbackup
+        state: present
+
+    - name: Ensure the group exists
+      group:
+        name: "{{ group }}"
+        state: present
+
+    - name: Create the user
+      user:
+        name: "{{ user }}"
+        shell: /bin/bash
+        home: "{{ home }}"
+        create_home: yes
+        group: "{{ group }}"
+        state: present
+
+    - name: Create .ssh directory
+      file:
+        path: "{{ home }}/.ssh"
+        owner: "{{ user }}"
+        group: "{{ group }}"
+        mode: '0700'
+        state: directory
+
+    - name: Create pool directory
+      file:
+        path: "{{ pool }}"
+        owner: "{{ user }}"
+        group: "{{ group }}"
+        mode: '0700'
+        state: directory
+
+    - name: Add authorized keys for users
+      authorized_key:
+        user: "{{ user }}"
+        key: "{{ item.key }}"
+        key_options: 'command="cd {{ pool }}/{{ item.host }}; borg serve --restrict-to-path {{ pool }}/{{ item.host }}",restrict'
+      loop: "{{ auth_users }}"
+
+    - name: Ensure authorized_keys file exists with correct permissions
+      file:
+        path: "{{ home }}/.ssh/authorized_keys"
+        owner: "{{ user }}"
+        group: "{{ group }}"
+        mode: '0600'
+        state: file
+
+    - name: Create directories for each authorized user
+      file:
+        path: "{{ pool }}/{{ item.host }}"
+        owner: "{{ user }}"
+        group: "{{ group }}"
+        mode: '0700'
+        state: directory
+      loop: "{{ auth_users }}"
