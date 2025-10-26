@@ -1,0 +1,51 @@
+---
+# Playbook: Install and configure Netdata monitoring
+# Usage: ansible-playbook -i ../inventory playbooks/04_netdata.yml
+# Description:
+#   - Installs Netdata monitoring agent
+#   - Configures retention, ML, alerts
+#   - Sets up Docker container monitoring
+#   - Optionally exposes via Traefik
+
+- hosts: homeserver
+  become: true
+
+  vars:
+    # Override defaults here if needed
+    # netdata_dbengine_tier0_retention_days: 14
+    # netdata_enable_ml: false
+    # netdata_web_bind_to: "localhost"  # Restrict to local only
+
+  roles:
+    - netdata
+
+  post_tasks:
+    - name: Check Netdata systemd service
+      command: systemctl status netdata --no-pager
+      register: netdata_service_status
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Display service status
+      debug:
+        var: netdata_service_status.stdout_lines
+
+    - name: Get Netdata version
+      command: netdata -V
+      register: netdata_version
+      changed_when: false
+
+    - name: Display Netdata version
+      debug:
+        msg: "Netdata version: {{ netdata_version.stdout }}"
+
+    - name: Test Netdata API endpoint
+      uri:
+        url: "http://localhost:{{ netdata_web_port }}/api/v1/info"
+        return_content: yes
+      register: netdata_api_test
+      failed_when: false
+
+    - name: Display API test result
+      debug:
+        msg: "Netdata API: {{ 'OK' if netdata_api_test.status == 200 else 'FAILED' }}"

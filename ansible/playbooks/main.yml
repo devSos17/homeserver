@@ -1,0 +1,46 @@
+---
+- hosts: homeserver
+  become: true
+
+
+  tasks:
+    - name: install docker
+      include_role: 
+        name: docker
+      vars:
+        docker_images:
+          - portainer/portainer-ce:latest
+          - traefik:latest
+          - cloudflare/cloudflared:latest
+          - mariadb:latest
+
+    # Add volume
+    - name: Mount up device by label
+      mount:
+        path: /DATA
+        src: /dev/sda1
+        fstype: ext4
+        state: mounted
+
+    - name: Copy compose-files
+      copy:
+        src: ../../docker
+        dest: /DATA
+
+    - name: config docker networks
+      docker_network:
+        name: "{{ item }}"
+      with_items: 
+        - "backend"
+        - "public"
+        - "db"
+
+    - name: Run images
+      community.docker.docker_compose_v2:
+        project_src: "/DATA/docker/{{ item }}"
+      with_items:
+        - "db"
+        - "traefik"
+        - "nextcloud"
+
+    # - name: config user

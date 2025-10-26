@@ -1,0 +1,46 @@
+---
+# Netdata Monitoring Dashboard
+# Accessible at: https://monitor-hg.devsos.dev
+# No authentication - access via HTTPS only
+
+http:
+  routers:
+    netdata:
+      rule: "Host(`monitor-hg.devsos.dev`)"
+      service: "netdata"
+      middlewares:
+        - "netdata-https-redirect"
+    netdata-secure:
+      rule: "Host(`monitor-hg.devsos.dev`)"
+      service: "netdata"
+      middlewares:
+        - "netdata-redirect-local"
+      tls:
+        certResolver: "letsencrypt"
+        domains:
+          - main: "devsos.dev"
+            sans:
+              - "*.devsos.dev"
+      entryPoints:
+        - "https"
+
+  middlewares:
+    netdata-https-redirect:
+      redirectScheme:
+        scheme: "https"
+    
+    # Redirect root to local dashboard
+    netdata-redirect-local:
+      redirectRegex:
+        regex: "^https://monitor-hg.devsos.dev/$"
+        replacement: "https://monitor-hg.devsos.dev/v3/local-agent.html"
+        permanent: false
+
+  services:
+    netdata:
+      loadBalancer:
+        servers:
+          # Netdata runs on host (systemd service)
+          # Access via host gateway  
+          - url: "http://host.docker.internal:19999"
+        passHostHeader: false

@@ -8,6 +8,7 @@ services:
       # - "8080:8080" #Dashboard
     extra_hosts:
       - "homeassistant:host-gateway"
+      # - "host.docker.internal:host-gateway"  # TODO: Uncomment when deploying Netdata
     volumes:
       - /etc/localtime:/etc/localtime:ro #time
       - /var/run/docker.sock:/var/run/docker.sock:ro #listen docker

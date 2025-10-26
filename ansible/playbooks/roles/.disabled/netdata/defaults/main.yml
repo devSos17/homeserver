@@ -1,0 +1,48 @@
+---
+# Netdata Role - Default Variables
+
+# Installation method: 'kickstart' (recommended) or 'package'
+netdata_install_method: kickstart
+
+# Disable telemetry (anonymous stats to Netdata Inc)
+netdata_disable_telemetry: true
+
+# Enable Cloud connection (optional - for remote access)
+netdata_enable_cloud: false
+netdata_cloud_token: ""  # Set this if netdata_enable_cloud: true
+
+# Web server settings
+netdata_web_port: 19999
+netdata_web_bind_to: "*"  # Use "localhost" to restrict to local only
+
+# Data retention settings (tiered storage)
+netdata_enable_dbengine: true
+netdata_dbengine_tier0_retention_days: 7    # 1-second resolution
+netdata_dbengine_tier1_retention_days: 90   # 1-minute resolution
+netdata_dbengine_tier2_retention_days: 365  # 1-hour resolution
+
+# Disk space allocated for metrics (per tier)
+netdata_dbengine_tier0_disk_space: "1GiB"
+netdata_dbengine_tier1_disk_space: "1GiB"
+netdata_dbengine_tier2_disk_space: "1GiB"
+
+# Memory settings
+netdata_dbengine_page_cache_size: "32MiB"
+
+# Machine Learning
+netdata_enable_ml: true
+
+# Health/Alerts
+netdata_enable_health: true
+
+# Logging
+netdata_log_level: "info"  # debug, info, warning, error
+
+# Email notifications (requires working MTA)
+netdata_email_notifications: false
+netdata_email_recipient: "root"
+
+# Expose via Traefik (if you have Traefik configured)
+netdata_expose_via_traefik: true
+netdata_traefik_domain: "monitor-hg.devsos.dev"
+netdata_traefik_certresolver: "letsencrypt"

@@ -1,0 +1,136 @@
+---
+# Netdata Role - Main Tasks
+# Purpose: Install and configure Netdata monitoring
+# Author: Sos
+# Date: 2025-10-25
+
+- name: Check if Netdata is already installed
+  command: which netdata
+  register: netdata_installed
+  ignore_errors: yes
+  changed_when: false
+
+- name: Install Netdata via kickstart script
+  when: 
+    - netdata_install_method == "kickstart"
+    - netdata_installed.rc != 0
+  block:
+    - name: Download Netdata kickstart script
+      get_url:
+        url: https://my-netdata.io/kickstart.sh
+        dest: /tmp/netdata-kickstart.sh
+        mode: '0755'
+
+    - name: Run Netdata kickstart installer
+      command: >
+        bash /tmp/netdata-kickstart.sh --dont-wait --stable-channel
+        {{ '--disable-telemetry' if netdata_disable_telemetry else '' }}
+        {{ '--claim-token ' + netdata_cloud_token if netdata_enable_cloud and netdata_cloud_token else '--dont-start-it' }}
+      args:
+        creates: /usr/sbin/netdata
+
+    - name: Remove kickstart script
+      file:
+        path: /tmp/netdata-kickstart.sh
+        state: absent
+
+- name: Install Netdata via package manager
+  when: 
+    - netdata_install_method == "package"
+    - netdata_installed.rc != 0
+  apt:
+    name: netdata
+    state: present
+    update_cache: yes
+
+- name: Ensure Netdata configuration directory exists
+  file:
+    path: /etc/netdata
+    state: directory
+    mode: '0755'
+
+- name: Configure Netdata main settings
+  template:
+    src: netdata.conf.j2
+    dest: /etc/netdata/netdata.conf
+    mode: '0644'
+  notify: restart netdata
+
+- name: Configure Netdata health/alerts
+  template:
+    src: health_alarm_notify.conf.j2
+    dest: /etc/netdata/health_alarm_notify.conf
+    mode: '0644'
+  notify: restart netdata
+  when: netdata_enable_health
+
+- name: Disable telemetry opt-out file
+  file:
+    path: /etc/netdata/.opt-out-from-anonymous-statistics
+    state: touch
+    mode: '0644'
+  when: netdata_disable_telemetry
+
+- name: Enable and start Netdata service
+  service:
+    name: netdata
+    enabled: yes
+    state: started
+
+- name: Wait for Netdata to be ready
+  wait_for:
+    port: "{{ netdata_web_port }}"
+    delay: 2
+    timeout: 30
+
+- name: Deploy Traefik configuration for Netdata
+  when: netdata_expose_via_traefik
+  block:
+    - name: Copy Netdata Traefik config
+      copy:
+        src: ../../../docker/traefik/conf/netdata.yml
+        dest: /DATA/docker/traefik/conf/netdata.yml
+        mode: '0644'
+      notify: reload traefik
+
+    - name: Ensure host.docker.internal is in Traefik extra_hosts
+      lineinfile:
+        path: /DATA/docker/traefik/docker-compose.yml
+        insertafter: 'extra_hosts:'
+        line: '      - "host.docker.internal:host-gateway"'
+        state: present
+      notify: reload traefik
+
+- name: Display Netdata access information
+  debug:
+    msg: |
+      ============================================
+      NETDATA INSTALLED SUCCESSFULLY
+      ============================================
+      
+      Access Dashboard:
+        Local: http://localhost:{{ netdata_web_port }}
+        Remote: http://{{ ansible_default_ipv4.address }}:{{ netdata_web_port }}
+        {% if netdata_expose_via_traefik %}
+        Traefik: https://{{ netdata_traefik_domain }}
+        {% endif %}
+      
+      Configuration: /etc/netdata/netdata.conf
+      Logs: /var/log/netdata/
+      
+      Data Retention:
+        Tier 0 (1s): {{ netdata_dbengine_tier0_retention_days }} days ({{ netdata_dbengine_tier0_disk_space }})
+        Tier 1 (1m): {{ netdata_dbengine_tier1_retention_days }} days ({{ netdata_dbengine_tier1_disk_space }})
+        Tier 2 (1h): {{ netdata_dbengine_tier2_retention_days }} days ({{ netdata_dbengine_tier2_disk_space }})
+      
+      Machine Learning: {{ 'ENABLED' if netdata_enable_ml else 'DISABLED' }}
+      Health Alerts: {{ 'ENABLED' if netdata_enable_health else 'DISABLED' }}
+      Cloud Connection: {{ 'ENABLED' if netdata_enable_cloud else 'DISABLED' }}
+      {% if netdata_expose_via_traefik %}
+      
+      🌐 Traefik Integration: ENABLED
+         Domain: https://{{ netdata_traefik_domain }}
+         Auth: Basic Auth (same as Traefik dashboard)
+      {% endif %}
+      
+      ============================================

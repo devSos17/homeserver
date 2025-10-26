@@ -1,0 +1,89 @@
+---
+# Role: auto-updates
+# Purpose: Configure automatic updates for Debian system and Docker containers
+# Author: Sos
+# Date: 2025-10-25
+
+- name: Install unattended-upgrades package
+  apt:
+    name: unattended-upgrades
+    state: present
+    update_cache: yes
+
+- name: Configure unattended-upgrades origins
+  lineinfile:
+    path: /etc/apt/apt.conf.d/50unattended-upgrades
+    regexp: '^//.*origin.*}-updates";'
+    line: '        "origin=Debian,codename=${distro_codename}-updates";'
+    state: present
+
+- name: Enable automatic security updates
+  lineinfile:
+    path: /etc/apt/apt.conf.d/50unattended-upgrades
+    regexp: '^//.*origin.*}-security";'
+    line: '        "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";'
+    state: present
+
+- name: Create auto-upgrades configuration file
+  copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Download-Upgradeable-Packages "1";
+      APT::Periodic::AutocleanInterval "7";
+      APT::Periodic::Unattended-Upgrade "1";
+    mode: '0644'
+  notify: restart unattended-upgrades
+
+- name: Enable and start unattended-upgrades service
+  service:
+    name: unattended-upgrades
+    enabled: yes
+    state: started
+
+# Docker auto-updates with Watchtower
+- name: Check if Docker is installed
+  command: which docker
+  register: docker_installed
+  ignore_errors: yes
+  changed_when: false
+
+- name: Deploy Watchtower container for Docker auto-updates
+  when: docker_installed.rc == 0
+  block:
+    - name: Pull Watchtower image
+      docker_image:
+        name: containrrr/watchtower
+        source: pull
+        tag: latest
+
+    - name: Deploy Watchtower container
+      docker_container:
+        name: watchtower
+        image: containrrr/watchtower:latest
+        state: started
+        restart_policy: unless-stopped
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+        env:
+          WATCHTOWER_CLEANUP: "true"
+          WATCHTOWER_SCHEDULE: "0 0 4 * * *"  # Daily at 4 AM
+          WATCHTOWER_INCLUDE_STOPPED: "false"
+          WATCHTOWER_REVIVE_STOPPED: "false"
+        labels:
+          com.centurylinklabs.watchtower.enable: "false"  # Don't update itself
+
+- name: Create Watchtower log directory
+  file:
+    path: /var/log/watchtower
+    state: directory
+    mode: '0755'
+  when: docker_installed.rc == 0
+
+- name: Display auto-updates status
+  debug:
+    msg: |
+      Auto-updates configured successfully:
+      - System packages: Daily via unattended-upgrades
+      - Docker containers: Daily at 4 AM via Watchtower
+      - Cleanup: Old images removed automatically

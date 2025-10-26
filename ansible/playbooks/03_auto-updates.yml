@@ -1,0 +1,57 @@
+---
+# Playbook: Configure automatic updates for homeserver
+# Usage: ansible-playbook -i ../inventory playbooks/03_auto-updates.yml
+# Description: 
+#   - Configures unattended-upgrades for Debian system packages
+#   - Deploys Watchtower for automatic Docker container updates
+#   - Sets up daily update schedule (4 AM)
+
+- hosts: homeserver
+  become: true
+
+  roles:
+    - auto-updates
+
+  post_tasks:
+    - name: Verify unattended-upgrades configuration
+      command: apt-config dump APT::Periodic
+      register: apt_periodic_config
+      changed_when: false
+
+    - name: Display APT periodic configuration
+      debug:
+        var: apt_periodic_config.stdout_lines
+
+    - name: Check Watchtower container status
+      command: docker ps --filter "name=watchtower" --format "{{.Names}} - {{.Status}}"
+      register: watchtower_status
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Display Watchtower status
+      debug:
+        msg: "{{ watchtower_status.stdout | default('Watchtower not running (Docker may not be installed)') }}"
+
+    - name: Summary
+      debug:
+        msg: |
+          ============================================
+          AUTO-UPDATES CONFIGURATION COMPLETE
+          ============================================
+          
+          System Updates:
+            - Daily package list update: ENABLED
+            - Auto-install security updates: ENABLED
+            - Auto-cleanup old packages: WEEKLY
+          
+          Docker Updates:
+            - Watchtower: {{ 'RUNNING' if watchtower_status.rc == 0 else 'NOT INSTALLED' }}
+            - Schedule: Daily at 4:00 AM
+            - Auto-cleanup old images: ENABLED
+          
+          Next Steps:
+            1. Monitor /var/log/unattended-upgrades/ for system updates
+            2. Check 'docker logs watchtower' for container updates
+            3. Consider adding email notifications (optional)
+          
+          ============================================

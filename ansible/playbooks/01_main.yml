@@ -54,10 +54,10 @@
           project_src: "/DATA/docker/{{ item }}"
         with_items:
           - "traefik"
-          - "portainer"
+          # - "portainer"
           - "db"
           - "nextcloud"
           - "homeassistant"
           - "adguard"
-          - "nginx"
+          # - "nginx"
 

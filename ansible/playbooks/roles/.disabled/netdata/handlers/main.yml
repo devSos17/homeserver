@@ -1,0 +1,11 @@
+---
+- name: restart netdata
+  service:
+    name: netdata
+    state: restarted
+
+- name: reload traefik
+  community.docker.docker_container:
+    name: traefik
+    state: started
+    restart: yes
