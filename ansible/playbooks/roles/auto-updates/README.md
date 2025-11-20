@@ -10,6 +10,10 @@ Configura actualizaciones automáticas para el homeserver (helios).
 - Instala actualizaciones de seguridad automáticamente
 - Limpia paquetes viejos semanalmente
 
+### Docker Engine
+- Actualiza docker-ce, containerd.io, docker-compose-plugin automáticamente
+- Corre diariamente junto con actualizaciones del sistema
+
 ### Docker Containers
 - Despliega Watchtower container
 - Actualiza containers diariamente a las 4 AM

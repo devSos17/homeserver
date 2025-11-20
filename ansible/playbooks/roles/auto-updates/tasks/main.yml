@@ -24,6 +24,13 @@
     line: '        "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";'
     state: present
 
+- name: Enable automatic Docker updates
+  lineinfile:
+    path: /etc/apt/apt.conf.d/50unattended-upgrades
+    insertafter: 'origin=Debian,codename=\$\{distro_codename\}-security'
+    line: '        "origin=Docker";'
+    state: present
+
 - name: Create auto-upgrades configuration file
   copy:
     dest: /etc/apt/apt.conf.d/20auto-upgrades
@@ -84,6 +91,7 @@
   debug:
     msg: |
       Auto-updates configured successfully:
-      - System packages: Daily via unattended-upgrades
+      - System packages: Daily via unattended-upgrades (Debian)
+      - Docker Engine: Daily via unattended-upgrades (docker-ce, containerd)
       - Docker containers: Daily at 4 AM via Watchtower
       - Cleanup: Old images removed automatically
