@@ -1,0 +1,7 @@
+# Secrets
+.env
+*.env
+
+# Ansible
+ansible/inventory
+ansible/ssh.cfg

@@ -1,6 +1,6 @@
 services:
   nextcloud:
-    image: nextcloud:latest
+    image: nextcloud:32
     container_name: nextcloud
     environment:
       - PHP_UPLOAD_LIMIT=16G
@@ -27,6 +27,7 @@ services:
       - "traefik.http.middlewares.nextcloud_redirectregex.redirectregex.permanent=true"
       - "traefik.http.middlewares.nextcloud_redirectregex.redirectregex.regex='https://(.*)/.well-known/(?:card|cal)dav'"
       - "traefik.http.middlewares.nextcloud_redirectregex.redirectregex.replacement='https://$${1}/remote.php/dav'"
+      - "com.centurylinklabs.watchtower.enable=false"
     networks:
       - backend
       - db

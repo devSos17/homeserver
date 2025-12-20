@@ -1,7 +1,7 @@
 name: adguard-home
 services:
   adguard-home:
-    image: adguard/adguardhome:latest
+    image: adguard/adguardhome:v0.107.69
     container_name: adguard-home
     deploy:
     ports:

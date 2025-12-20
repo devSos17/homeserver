@@ -1,7 +1,7 @@
 name: homeassistant
 services:
   homeassistant:
-    image: linuxserver/homeassistant:latest
+    image: linuxserver/homeassistant:2025.11.2
     container_name: homeassistant
     environment:
       - PGID=1000
