@@ -23,7 +23,7 @@
         var: apt_periodic_config.stdout_lines
 
     - name: Check Watchtower container status
-      command: docker ps --filter "name=watchtower" --format "{{.Names}} - {{.Status}}"
+      command: docker ps --filter "name=watchtower" --format "{% raw %}{{.Names}} - {{.Status}}{% endraw %}"
       register: watchtower_status
       changed_when: false
       ignore_errors: yes
@@ -45,7 +45,7 @@
             - Auto-cleanup old packages: WEEKLY
           
           Docker Updates:
-            - Watchtower: {{ 'RUNNING' if watchtower_status.rc == 0 else 'NOT INSTALLED' }}
+            - Watchtower: {{ 'RUNNING' if watchtower_status.rc | default(1) == 0 else 'NOT INSTALLED' }}
             - Schedule: Daily at 4:00 AM
             - Auto-cleanup old images: ENABLED
           

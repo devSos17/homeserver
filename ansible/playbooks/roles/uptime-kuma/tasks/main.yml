@@ -1,0 +1,14 @@
+---
+- name: Create uptime-kuma directory
+  file:
+    path: /DATA/docker/uptime-kuma
+    state: directory
+
+- name: Copy docker-compose
+  copy:
+    src: ../../../../docker/uptime-kuma/docker-compose.yml
+    dest: /DATA/docker/uptime-kuma/docker-compose.yml
+
+- name: Run uptime-kuma
+  community.docker.docker_compose_v2:
+    project_src: /DATA/docker/uptime-kuma

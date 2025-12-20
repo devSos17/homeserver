@@ -29,10 +29,10 @@
         copy:
           src: ../../docker
           dest: /DATA
-      - name: Copy Data
-        copy:
-          src: ../../data
-          dest: /DATA/AppData
+      # - name: Copy Data  # Solo para restaurar backups
+      #   copy:
+      #     src: ../../data
+      #     dest: /DATA/AppData
 
       - name: config networks
         docker_network:
@@ -60,4 +60,5 @@
           - "homeassistant"
           - "adguard"
           # - "nginx"
+          - "uptime-kuma"
 

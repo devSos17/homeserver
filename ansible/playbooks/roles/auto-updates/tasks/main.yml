@@ -58,27 +58,16 @@
 - name: Deploy Watchtower container for Docker auto-updates
   when: docker_installed.rc == 0
   block:
-    - name: Pull Watchtower image
-      docker_image:
-        name: containrrr/watchtower
-        source: pull
-        tag: latest
+    - name: Create Watchtower .env file with secrets
+      copy:
+        dest: /DATA/docker/watchtower/.env
+        content: |
+          WATCHTOWER_NOTIFICATION_URL=ntfy://{{ vault_ntfy_url | regex_replace('^https?://', '') }}/{{ vault_ntfy_topic }}
+        mode: '0600'
 
-    - name: Deploy Watchtower container
-      docker_container:
-        name: watchtower
-        image: containrrr/watchtower:latest
-        state: started
-        restart_policy: unless-stopped
-        volumes:
-          - /var/run/docker.sock:/var/run/docker.sock
-        env:
-          WATCHTOWER_CLEANUP: "true"
-          WATCHTOWER_SCHEDULE: "0 0 4 * * *"  # Daily at 4 AM
-          WATCHTOWER_INCLUDE_STOPPED: "false"
-          WATCHTOWER_REVIVE_STOPPED: "false"
-        labels:
-          com.centurylinklabs.watchtower.enable: "false"  # Don't update itself
+    - name: Deploy Watchtower with docker-compose
+      community.docker.docker_compose_v2:
+        project_src: /DATA/docker/watchtower
 
 - name: Create Watchtower log directory
   file:
